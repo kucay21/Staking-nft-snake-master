@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Snake Master Staking</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="https://ipfs.io/ipfs/bafybeiejdkgnx634gwsmqxlnxu3zjb633wudxscurlgfvantjdua3w66sa">
+  <script src="./waxjs.js"></script>
+  <style>
+    /* === Global Style === */
+    :root {
+      --bg: #0d1117;
+      --bg-card: #161b22;
+      --primary: #238636;
+      --primary-hover: #2ea043;
+      --accent: #58a6ff;
+      --text: #e6edf3;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* === Header === */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 20px;
+      background: var(--bg-card);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.6);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    header img {
+      height: 40px;
+    }
+    .menu-btn {
+      font-size: 26px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      color: var(--text);
+    }
+
+    /* === Sidebar Menu === */
+    #sidebar {
+      position: fixed;
+      top: 0;
+      right: -260px;
+      width: 260px;
+      height: 100%;
+      background: var(--bg-card);
+      box-shadow: -2px 0 8px rgba(0,0,0,0.5);
+      transition: right 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      z-index: 99;
+    }
+    #sidebar.active {
+      right: 0;
+    }
+    #sidebar button, #sidebar a {
+      padding: 15px 25px;
+      text-align: left;
+      background: none;
+      border: none;
+      color: var(--text);
+      font-size: 16px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+    #sidebar button:hover, #sidebar a:hover {
+      background: #21262d;
+      color: var(--accent);
+    }
+
+    /* Overlay click outside */
+    #overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 90;
+    }
+    #overlay.active {
+      display: block;
+    }
+
+    /* === Main Container === */
+    .container {
+      max-width: 1000px;
+      margin: 20px auto;
+      padding: 0 15px;
+    }
+    .login-btn {
+      display: block;
+      margin: 30px auto 10px;
+      padding: 12px 25px;
+      background: var(--primary);
+      border: none;
+      color: #fff;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(35,134,54,0.6);
+      transition: all 0.2s ease;
+    }
+    .login-btn:hover {
+      background: var(--primary-hover);
+    }
+    #account {
+      text-align: center;
+      margin-top: 5px;
+    }
+
+    /* === Section === */
+    .section {
+      display: none;
+      background: var(--bg-card);
+      border-radius: 10px;
+      padding: 20px;
+      margin-top: 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+      animation: fadeIn 0.4s ease;
+    }
+    .section.active { display: block; }
+    .section h3 { margin-top: 0; color: var(--accent); font-weight: 500; }
+
+    @keyframes fadeIn {
+      from {opacity: 0; transform: translateY(10px);}
+      to {opacity: 1; transform: translateY(0);}
+    }
+
+    /* === NFT Grid === */
+    .nft-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+      gap: 15px;
+      margin-top: 15px;
+    }
+    .nft-item {
+      position: relative;
+      border: 2px solid #30363d;
+      border-radius: 10px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .nft-item img { width: 100%; display: block; }
+    .nft-item:hover { border-color: var(--accent); transform: translateY(-3px); }
+    .nft-item.selected { border-color: var(--primary); box-shadow: 0 0 8px rgba(35,134,54,0.5); }
+    .nft-item.selected::after {
+      content: "✔";
+      position: absolute;
+      top: 5px; right: 5px;
+      background: var(--primary);
+      color: #fff;
+      border-radius: 50%;
+      padding: 4px 6px;
+      font-size: 13px;
+    }
+
+    /* Buttons */
+    .action-btn {
+      margin-top: 15px;
+      padding: 10px 18px;
+      background: var(--primary);
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px;
+    }
+    .action-btn:hover { background: var(--primary-hover); }
+    .action-btn:disabled {
+      background: #30363d;
+      color: #8b949e;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <img src="https://ipfs.io/ipfs/bafybeiejdkgnx634gwsmqxlnxu3zjb633wudxscurlgfvantjdua3w66sa" alt="Logo">
+    <button class="menu-btn" onclick="toggleMenu()">☰</button>
+  </header>
+
+  <div id="sidebar">
+    <button onclick="showSection('stake-section')">📥 Staking NFT</button>
+    <button onclick="showSection('unstake-section')">📤 Unstaking NFT</button>
+    <a href="https://neftyblocks.com/collection/packbadgesnk/drops" target="_blank">🛍️ Shop</a>
+    <button onclick="claimReward()">💰 Claim Reward WAX</button>
+  </div>
+  <div id="overlay" onclick="toggleMenu()"></div>
+
+  <div class="container">
+    <button class="login-btn" onclick="login()">Login with WAX Wallet</button>
+    <div id="account"></div>
+
+    <div id="stake-section" class="section">
+      <h3>📥 Pilih NFT untuk Staking</h3>
+      <div id="stake-nft-list" class="nft-grid"></div>
+      <button class="action-btn" id="stake-selected-btn" onclick="stakeSelected()" disabled>Stake Selected</button>
+    </div>
+
+    <div id="unstake-section" class="section">
+      <h3>📤 Pilih NFT untuk Unstaking</h3>
+      <div id="unstake-nft-list" class="nft-grid"></div>
+      <button class="action-btn" id="unstake-selected-btn" onclick="unstakeSelected()" disabled>Unstake Selected</button>
+    </div>
+  </div>
+
+<script>
+const wax = new waxjs.WaxJS({ rpcEndpoint: 'https://wax.greymass.com' });
+const API = 'https://wax.api.atomicassets.io/atomicassets/v1/assets';
+const COLLECTION = 'packbadgesnk';
+const CONTRACT = 'waxdaofarmer';
+const FARM_ID = 1092;
+
+let selectedStake = new Set();
+let selectedUnstake = new Set();
+
+function toggleMenu() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('overlay');
+  sidebar.classList.toggle('active');
+  overlay.classList.toggle('active');
+}
+
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  toggleMenu();
+  if (id === 'stake-section') loadStakeNFTs();
+  if (id === 'unstake-section') loadUnstakeNFTs();
+}
+
+async function login() {
+  try {
+    const userAccount = await wax.login();
+    document.getElementById('account').innerText = `👤 ${userAccount}`;
+    loadStakeNFTs();
+    loadUnstakeNFTs();
+  } catch (e) {
+    alert('Gagal login ke wallet');
+  }
+}
+
+async function loadStakeNFTs() {
+  const account = wax.userAccount;
+  if (!account) return;
+  const res = await fetch(`${API}?collection_name=${COLLECTION}&owner=${account}&limit=100`);
+  const data = await res.json();
+  const container = document.getElementById('stake-nft-list');
+  container.innerHTML = '';
+  selectedStake.clear();
+  document.getElementById('stake-selected-btn').disabled = true;
+
+  data.data.forEach(asset => {
+    const div = document.createElement('div');
+    div.className = 'nft-item';
+    div.innerHTML = `<img src="https://ipfs.io/ipfs/${asset.data.img}" alt="">`;
+    div.onclick = () => toggleSelect(div, selectedStake, asset.asset_id, 'stake-selected-btn');
+    container.appendChild(div);
+  });
+}
+
+async function loadUnstakeNFTs() {
+  const account = wax.userAccount;
+  if (!account) return;
+  const res = await fetch(`${API}?collection_name=${COLLECTION}&owner=${CONTRACT}&limit=500`);
+  const data = await res.json();
+  const container = document.getElementById('unstake-nft-list');
+  container.innerHTML = '';
+  selectedUnstake.clear();
+  document.getElementById('unstake-selected-btn').disabled = true;
+
+  data.data
+    .filter(asset => asset.data.user === account || asset.immutable_data?.owner === account)
+    .forEach(asset => {
+      const div = document.createElement('div');
+      div.className = 'nft-item';
+      div.innerHTML = `<img src="https://ipfs.io/ipfs/${asset.data.img}" alt="">`;
+      div.onclick = () => toggleSelect(div, selectedUnstake, asset.asset_id, 'unstake-selected-btn');
+      container.appendChild(div);
+    });
+}
+
+function toggleSelect(element, set, id, btnId) {
+  if (set.has(id)) {
+    set.delete(id);
+    element.classList.remove('selected');
+  } else {
+    if (set.size >= 100) return alert('Maksimal 100 NFT per transaksi');
+    set.add(id);
+    element.classList.add('selected');
+  }
+  document.getElementById(btnId).disabled = set.size === 0;
+}
+
+async function stakeSelected() {
+  if (selectedStake.size === 0) return;
+  try {
+    await wax.api.transact({
+      actions: [{
+        account: CONTRACT,
+        name: 'stake',
+        authorization: [{ actor: wax.userAccount, permission: 'active' }],
+        data: {
+          user: wax.userAccount,
+          farm_id: FARM_ID,
+          asset_ids: Array.from(selectedStake)
+        }
+      }]
+    }, { blocksBehind: 3, expireSeconds: 30 });
+
+    alert(`✅ ${selectedStake.size} NFT di-stake`);
+    loadStakeNFTs();
+    selectedStake.clear();
+  } catch (err) {
+    alert('❌ Gagal staking');
+  }
+}
+
+async function unstakeSelected() {
+  if (selectedUnstake.size === 0) return;
+  try {
+    await wax.api.transact({
+      actions: [{
+        account: CONTRACT,
+        name: 'unstake',
+        authorization: [{ actor: wax.userAccount, permission: 'active' }],
+        data: {
+          user: wax.userAccount,
+          farm_id: FARM_ID,
+          asset_ids: Array.from(selectedUnstake)
+        }
+      }]
+    }, { blocksBehind: 3, expireSeconds: 30 });
+
+    alert(`✅ ${selectedUnstake.size} NFT di-unstake`);
+    loadUnstakeNFTs();
+    selectedUnstake.clear();
+  } catch (err) {
+    alert('❌ Gagal unstaking');
+  }
+}
+
+async function claimReward() {
+  try {
+    await wax.api.transact({
+      actions: [{
+        account: CONTRACT,
+        name: 'claim',
+        authorization: [{ actor: wax.userAccount, permission: 'active' }],
+        data: { user: wax.userAccount, farm_id: FARM_ID }
+      }]
+    }, { blocksBehind: 3, expireSeconds: 30 });
+
+    alert('💰 Reward berhasil di-claim!');
+  } catch (err) {
+    alert('❌ Gagal claim reward');
+  }
+}
+</script>
+</body>
+</html>
